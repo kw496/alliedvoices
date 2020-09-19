@@ -297,10 +297,16 @@ p {
   padding:24px 24px;
 }
 
-.tab-section-header{
+.tab-section-title{
   font-size: 19px;
   font-weight: bold;
-  margin:0px;
+  margin:0;
+}
+
+.tab-section-subtitle{
+  font-size: 16px;
+  font-weight: bold;
+  margin:15px 0 0 0;
 }
 
 .tab-section-details{
@@ -329,4 +335,28 @@ p {
 
 .tab-section-iframe{
   transition:height 1s;
+}
+
+.tab-section-list{
+  list-style: none;
+  margin:4px 0 16px 0;
+}
+
+.tab-section-list>li{
+  margin: 15px 0;
+  text-decoration: none;
+}
+.tab-section-list>li:first-child{
+  margin: 0 0 15px 0;
+  text-decoration: none;
+}
+
+.tab-section-list>li{
+  margin: 15px 0;
+  text-decoration: none;
+}
+
+.tab-section-list>li>a{
+  text-decoration: none;
+  font-weight:500;
 }

@@ -2,6 +2,7 @@ import React from 'react'
 import { MapComponent } from 'react-leaflet'
 import { PropTypes } from 'prop-types'
 import './leaflet-sidebar.min.css'
+import Tag from '../Tag/Tag';
 
 const Eradius = 3958.8;
 
@@ -14,7 +15,6 @@ class Tab extends React.Component {
     disabled: PropTypes.bool,
     // Provided by the Sidebar; don't mark as required (user doesn't need to include them):
     onClose: PropTypes.func,
-    closeIcon: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
     position: PropTypes.oneOf(['left', 'right']),
     active: PropTypes.bool,
   }
@@ -35,7 +35,7 @@ class Tab extends React.Component {
     }
   }
 
-  renderTabSection(voice, index) {
+  renderVoiceSection(voice, index) {
     // Determine message for the date
     const diff = Date.now() - Date.parse(voice.Date)
     var dateMsg;
@@ -53,18 +53,77 @@ class Tab extends React.Component {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const d = Math.floor(Eradius * c);
 
+    // Determine Tags and Related Resources if they exist
+    let locationTags = null;
+    let incidentTags = null;
+    let relatedResources = null;
+    let relatedVoices = null;
+
+    if (voice['Location Tags for Resources']) {
+      locationTags = voice['Location Tags for Resources'].map((tag) => {
+        if (this.props.resources && this.props.resources[tag]) {
+          relatedResources = this.props.resources[tag].map((rowId) => { return <li key={rowId}><a href={this.props.resources.rows[rowId].URL}>{this.props.resources.rows[rowId].Name}</a></li> })
+        }
+        return (<Tag type="Location" key={tag}>{tag}</Tag>)
+      })
+    }
+
+    if (voice['Incident type']) {
+      incidentTags = voice['Incident type'].map((type, index) => {
+        if (this.props.allVoices && this.props.allVoices[type]) {
+          let randomIndex = Math.floor(Math.random() * (this.props.allVoices[type].length - 1))
+          let article = this.props.allVoices.rows[this.props.allVoices[type][randomIndex]];
+          if (!relatedVoices) relatedVoices = [];
+          relatedVoices.push(<li key={index}><a href={article.URL}>{article.Name}</a></li>)
+        }
+        return (<Tag type="Incident" key={type}>{type}</Tag>)
+      })
+    }
+
+
+
     return (
       <div key={voice.Name} className="tab-section-container">
-        <h2 className="tab-section-header">{voice["Incident type copy"]}</h2>
+        <h2 className="tab-section-title">{voice["Incident type copy"]}</h2>
         <p className="tab-section-details">{dateMsg} · {`${d} mi away`} · {voice.Publisher}</p>
+        {incidentTags}
+        {locationTags}
         <p className="tab-section-snippet">{voice.Snippet}</p>
         <p className="tab-section-readmore" onClick={() => { this.expandTab(index) }}>Read More at {voice.Publisher}</p>
-        <iframe className="tab-section-iframe"
+        <iframe
+          loading="lazy"
+          sandbox="allow-scripts allow-same-origin"
+          className="tab-section-iframe"
           title={`Article from ${voice.Publisher}`}
           width="100%"
           height={this.state.iframeOpen === index ? "500px" : "0"}
-          src={voice.URL}>
+          src={this.state.iframeOpen === index ? voice.URL : ""}>
         </iframe>
+        {relatedResources &&
+          <>
+            <p className="tab-section-subtitle">Resources</p>
+            <ul className="tab-section-list">
+              {relatedResources}
+            </ul>
+          </>
+        }
+        {relatedVoices &&
+          <>
+            <p className="tab-section-subtitle">Related Articles</p>
+            <ul className="tab-section-list">
+              {relatedVoices}
+            </ul>
+          </>
+        }
+      </div>
+    )
+  }
+
+  renderResourceSection(resource, index) {
+    return (
+      <div key={resource.Name} className="tab-section-container">
+        <h2 className="tab-section-title">{resource.Name}</h2>
+        <p className="tab-section-snippet">Visit <a rel="noopener noreferrer" target="_blank" href={resource.URL}>{resource.URL}</a></p>
       </div>
     )
   }
@@ -82,8 +141,11 @@ class Tab extends React.Component {
     }
 
     var tabSections;
-    if (typeof (this.props.children) === 'object' && this.props.children[0]) {
-      tabSections = this.props.children.map((voice, index) => this.renderTabSection(voice, index))
+
+    if (typeof (this.props.voices) === 'object' && this.props.voices[0]) {
+      tabSections = this.props.voices.map((voice, index) => this.renderVoiceSection(voice, index))
+    } else if (this.props.resources && this.props.resources.rows[0]) {
+      tabSections = this.props.resources.rows.map((resource, index) => this.renderResourceSection(resource, index))
     }
 
     return (
@@ -111,7 +173,6 @@ class Sidebar extends MapComponent {
     collapsed: PropTypes.bool,
     position: PropTypes.oneOf(['left', 'right']),
     selected: PropTypes.string,
-    closeIcon: PropTypes.oneOfType([PropTypes.string, PropTypes.element]).isRequired,
     onClose: PropTypes.func,
     onOpen: PropTypes.func,
     children: PropTypes.oneOfType([
